@@ -12,7 +12,7 @@ class RoughAnnotationImpl implements RoughAnnotation {
   private _ro?: any; // ResizeObserver is not supported in typescript std lib yet
   private _seed = randomSeed();
 
-  private _e: HTMLElement;
+  private _e: HTMLElement; // annotation container !!!!!
   private _svg?: SVGSVGElement;
   private _lastSizes: Rect[] = [];
 
@@ -84,19 +84,21 @@ class RoughAnnotationImpl implements RoughAnnotation {
       style.pointerEvents = 'none';
       style.width = '100px';
       style.height = '100px';
-      const prepend = this._config.type === 'highlight';
-      this._e.insertAdjacentElement(prepend ? 'beforebegin' : 'afterend', svg);
       this._state = 'not-showing';
-
+      
+      const prepend = this._config.type === 'highlight';
       // ensure e is positioned
       if (prepend) {
+        this._e.prepend(svg)
         const computedPos = window.getComputedStyle(this._e).position;
         const unpositioned = (!computedPos) || (computedPos === 'static');
         if (unpositioned) {
           this._e.style.position = 'relative';
         }
+      } else {
+        this._e.append(svg)
       }
-      this.attachListeners();
+      //this.attachListeners(); // no resizing yet :(
     }
   }
 
@@ -217,7 +219,7 @@ class RoughAnnotationImpl implements RoughAnnotation {
     for (let i = 0; i < rects.length; i++) {
       const rect = rects[i];
       const ad = totalDuration * (rect.w / totalWidth);
-      renderAnnotation(svg, rects[i], config, delay + this._animationDelay, ad, this._seed);
+      renderAnnotation(svg, rects[i], config, delay + this._animationDelay, ad, randomSeed());
       delay += ad;
     }
     this._lastSizes = rects;
@@ -228,12 +230,12 @@ class RoughAnnotationImpl implements RoughAnnotation {
     const ret: Rect[] = [];
     if (this._svg) {
       if (this._config.multiline) {
-        const elementRects = this._e.getClientRects();
+        const elementRects = this._config.clientRects();
         for (let i = 0; i < elementRects.length; i++) {
           ret.push(this.svgRect(this._svg, elementRects[i]));
         }
       } else {
-        ret.push(this.svgRect(this._svg, this._e.getBoundingClientRect()));
+        ret.push(this.svgRect(this._svg, this._config.boundingClientRect));
       }
     }
     return ret;
